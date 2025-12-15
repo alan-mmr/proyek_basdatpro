@@ -5,94 +5,126 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Pet;
-use App\Models\Pemilik; // Kita butuh ini untuk dropdown
-use App\Models\RasHewan; // Kita butuh ini untuk dropdown
-use Exception;
+use App\Models\Pemilik;
+use App\Models\RasHewan;
 
 class PetController extends Controller
 {
+    /**
+     * TAMPILKAN DAFTAR HEWAN
+     */
     public function index()
     {
-        $pets = Pet::with('pemilik.user', 'rasHewan')->get();
+        // Ambil data pet beserta relasinya biar loading cepat
+        $pets = Pet::with(['pemilik.user', 'ras.jenis'])->get();
         return view('admin.pet.index', compact('pets'));
     }
 
     /**
-     * Menampilkan form create.
+     * TAMPILKAN FORM TAMBAH
      */
     public function create()
     {
-        // Ambil data untuk dikirim ke 2 dropdown
-        $pemiliks = Pemilik::with('user')->get();
-        $rasHewans = RasHewan::with('jenisHewan')->get();
-        
-        return view('admin.pet.create', compact('pemiliks', 'rasHewans'));
+        // Ambil data untuk dropdown
+        $pemiliks = Pemilik::with('user')->get(); 
+        $ras_hewans = RasHewan::with('jenis')->get();
+
+        return view('admin.pet.create', compact('pemiliks', 'ras_hewans'));
     }
 
     /**
-     * Menyimpan data baru.
+     * SIMPAN DATA BARU
      */
     public function store(Request $request)
     {
-        try {
-            $validatedData = $this->validatePet($request);
-            $this->createPet($validatedData);
-
-            return redirect()->route('admin.pet.index')
-                             ->with('success', 'Pet berhasil ditambahkan.');
-        } catch (Exception $e) {
-            return redirect()->back()
-                             ->with('error', 'Gagal menyimpan: ' . $e->getMessage())
-                             ->withInput();
-        }
-    }
-
-    /**
-     * Helper: Validasi
-     */
-    protected function validatePet(Request $request, $id = null)
-    {
-        return $request->validate([
-            'idpemilik' => 'required|integer|exists:pemilik,idpemilik',
-            'idras_hewan' => 'required|integer|exists:ras_hewan,idras_hewan',
-            'nama' => 'required|string|max:100',
-            'tanggal_lahir' => 'required|date|before_or_equal:today',
-            'jenis_kelamin' => 'required|string|in:J,B', // Hanya boleh J atau B
-            'warna_tanda' => 'nullable|string|max:45',
-        ], [
-            'idpemilik.required' => 'Pemilik wajib dipilih.',
-            'idras_hewan.required' => 'Ras hewan wajib dipilih.',
-            'nama.required' => 'Nama pet wajib diisi.',
-            'tanggal_lahir.required' => 'Tanggal lahir wajib diisi.',
-            'tanggal_lahir.before_or_equal' => 'Tanggal lahir tidak boleh di masa depan.',
-            'jenis_kelamin.required' => 'Jenis kelamin wajib dipilih.',
+        $request->validate([
+            'nama'          => 'required|string|max:100',
+            'jenis_kelamin' => 'required|in:J,B',
+            'idpemilik'     => 'required|exists:pemilik,idpemilik',
+            'idras_hewan'   => 'required|exists:ras_hewan,idras_hewan',
+            'warna_tanda'   => 'nullable|string|max:45',
+            'tanggal_lahir' => 'nullable|date',
         ]);
-    }
 
-    /**
-     * Helper: Simpan ke DB
-     */
-    protected function createPet(array $data)
-    {
         try {
-            return Pet::create([
-                'idpemilik' => $data['idpemilik'],
-                'idras_hewan' => $data['idras_hewan'],
-                'nama' => $this->formatNama($data['nama']),
-                'tanggal_lahir' => $data['tanggal_lahir'],
-                'jenis_kelamin' => $data['jenis_kelamin'],
-                'warna_tanda' => $data['warna_tanda'] ?? null,
+            Pet::create([
+                'nama'          => $request->nama,
+                'jenis_kelamin' => $request->jenis_kelamin,
+                'idpemilik'     => $request->idpemilik,
+                'idras_hewan'   => $request->idras_hewan,
+                'warna_tanda'   => $request->warna_tanda,
+                'tanggal_lahir' => $request->tanggal_lahir,
             ]);
-        } catch (Exception $e) {
-            throw new Exception('Gagal menyimpan data pet: ' . $e->getMessage());
+
+            return redirect()->route('admin.pet.index')->with('success', 'Data Hewan berhasil ditambahkan!');
+
+        } catch (\Exception $e) {
+            return back()->with('error', 'Gagal menyimpan: ' . $e->getMessage())->withInput();
         }
     }
 
     /**
-     * Helper: Format Nama (Title Case)
+     * TAMPILKAN FORM EDIT (Baru Ditambahkan)
      */
-    protected function formatNama($nama)
+    public function edit($id)
     {
-        return trim(ucwords(strtolower($nama)));
+        // Cari data hewan berdasarkan ID
+        $pet = Pet::findOrFail($id);
+
+        // Data pendukung untuk dropdown (sama seperti create)
+        $pemiliks = Pemilik::with('user')->get();
+        $ras_hewans = RasHewan::with('jenis')->get();
+
+        return view('admin.pet.edit', compact('pet', 'pemiliks', 'ras_hewans'));
+    }
+
+    /**
+     * UPDATE DATA KE DATABASE (Baru Ditambahkan)
+     */
+    public function update(Request $request, $id)
+    {
+        // Validasi sama seperti store
+        $request->validate([
+            'nama'          => 'required|string|max:100',
+            'jenis_kelamin' => 'required|in:J,B',
+            'idpemilik'     => 'required|exists:pemilik,idpemilik',
+            'idras_hewan'   => 'required|exists:ras_hewan,idras_hewan',
+            'warna_tanda'   => 'nullable|string|max:45',
+            'tanggal_lahir' => 'nullable|date',
+        ]);
+
+        try {
+            $pet = Pet::findOrFail($id);
+            
+            // Update data
+            $pet->update([
+                'nama'          => $request->nama,
+                'jenis_kelamin' => $request->jenis_kelamin,
+                'idpemilik'     => $request->idpemilik,
+                'idras_hewan'   => $request->idras_hewan,
+                'warna_tanda'   => $request->warna_tanda,
+                'tanggal_lahir' => $request->tanggal_lahir,
+            ]);
+
+            return redirect()->route('admin.pet.index')->with('success', 'Data Hewan berhasil diperbarui!');
+
+        } catch (\Exception $e) {
+            return back()->with('error', 'Gagal update: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * HAPUS DATA (Baru Ditambahkan)
+     */
+    public function destroy($id)
+    {
+        try {
+            $pet = Pet::findOrFail($id);
+            $pet->delete();
+
+            return redirect()->route('admin.pet.index')->with('success', 'Data Hewan berhasil dihapus.');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Gagal hapus: ' . $e->getMessage());
+        }
     }
 }

@@ -1,131 +1,123 @@
 @extends('layouts.app')
 
-@section('title', 'Tambah Pet')
-
 @section('content')
-<div class="container">
-    <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card">
-                <div class="card-header">Tambah Pet Baru</div>
+<div class="container-fluid">
+    
+    {{-- JUDUL HALAMAN --}}
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Tambah Hewan Baru</h1>
+    </div>
 
-                <div class="card-body">
-                    @if ($errors->any())
-                        <div class="alert alert-danger">
-                            <ul>
-                                @foreach ($errors->all() as $error)
-                                    <li>{{ $error }}</li>
-                                @endforeach
-                            </ul>
-                        </div>
-                    @endif
-
-                    <form action="{{ route('admin.pet.store') }}" method="POST">
-                        @csrf 
-
-                        <div class="form-group mb-3">
-                            <label for="idpemilik" class="form-label">
-                                Pemilik <span class="text-danger">*</span>
-                            </label>
-                            <select class="form-control @error('idpemilik') is-invalid @enderror" 
-                                    id="idpemilik" name="idpemilik" required>
-                                <option value="">Pilih Pemilik</option>
-                                @foreach($pemiliks as $pemilik)
-                                    <option value="{{ $pemilik->idpemilik }}" {{ old('idpemilik') == $pemilik->idpemilik ? 'selected' : '' }}>
-                                        {{ $pemilik->user->nama }} ({{ $pemilik->user->email }})
-                                    </option>
-                                @endforeach
-                            </select>
-                            @error('idpemilik')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-
-                        <div class="form-group mb-3">
-                            <label for="idras_hewan" class="form-label">
-                                Ras Hewan <span class="text-danger">*</span>
-                            </label>
-                            <select class="form-control @error('idras_hewan') is-invalid @enderror" 
-                                    id="idras_hewan" name="idras_hewan" required>
-                                <option value="">Pilih Ras Hewan</option>
-                                @foreach($rasHewans as $ras)
-                                    <option value="{{ $ras->idras_hewan }}" {{ old('idras_hewan') == $ras->idras_hewan ? 'selected' : '' }}>
-                                        {{ $ras->nama_ras }} ({{ $ras->jenisHewan->nama_jenis_hewan }})
-                                    </option>
-                                @endforeach
-                            </select>
-                            @error('idras_hewan')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-
-                        <div class="form-group mb-3">
-                            <label for="nama" class="form-label">
-                                Nama Pet <span class="text-danger">*</span>
-                            </label>
-                            <input type="text" 
-                                   class="form-control @error('nama') is-invalid @enderror" 
-                                   id="nama" name="nama" 
-                                   value="{{ old('nama') }}" 
-                                   placeholder="Masukkan nama pet" required>
-                            @error('nama')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-
-                        <div class="form-group mb-3">
-                            <label for="tanggal_lahir" class="form-label">
-                                Tanggal Lahir <span class="text-danger">*</span>
-                            </label>
-                            <input type="date" 
-                                   class="form-control @error('tanggal_lahir') is-invalid @enderror" 
-                                   id="tanggal_lahir" name="tanggal_lahir" 
-                                   value="{{ old('tanggal_lahir') }}" required>
-                            @error('tanggal_lahir')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-
-                        <div class="form-group mb-3">
-                            <label for="jenis_kelamin" class="form-label">
-                                Jenis Kelamin <span class="text-danger">*</span>
-                            </label>
-                            <select class="form-control @error('jenis_kelamin') is-invalid @enderror" 
-                                    id="jenis_kelamin" name="jenis_kelamin" required>
-                                <option value="">Pilih Jenis Kelamin</option>
-                                <option value="J" {{ old('jenis_kelamin') == 'J' ? 'selected' : '' }}>Jantan</option>
-                                <option value="B" {{ old('jenis_kelamin') == 'B' ? 'selected' : '' }}>Betina</option>
-                            </select>
-                            @error('jenis_kelamin')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-
-                        <div class="form-group mb-3">
-                            <label for="warna_tanda" class="form-label">Warna / Tanda</label>
-                            <input type="text" 
-                                   class="form-control @error('warna_tanda') is-invalid @enderror" 
-                                   id="warna_tanda" name="warna_tanda" 
-                                   value="{{ old('warna_tanda') }}" 
-                                   placeholder="Misal: Belang hitam, ekor buntung">
-                            @error('warna_tanda')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-
-
-                        <div class="d-flex justify-content-between">
-                            <a href="{{ route('admin.pet.index') }}" class="btn btn-secondary">
-                                <i class="fas fa-arrow-left"></i> Kembali
-                            </a>
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save"></i> Simpan
-                            </button>
-                        </div>
-
-                    </form>
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Form Pasien Hewan</h6>
+        </div>
+        <div class="card-body">
+            
+            {{-- CEK ERROR DARI DATABASE / CONTROLLER --}}
+            @if (session('error'))
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <strong>Gagal!</strong> {{ session('error') }}
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
                 </div>
-            </div>
+            @endif
+
+            {{-- CEK ERROR VALIDASI INPUT --}}
+            @if ($errors->any())
+                <div class="alert alert-danger">
+                    <strong>Perhatian!</strong> Ada data yang belum sesuai:
+                    <ul class="mb-0 mt-2">
+                        @foreach ($errors->all() as $error) 
+                            <li>{{ $error }}</li> 
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+
+            <form action="{{ route('admin.pet.store') }}" method="POST">
+                @csrf
+                
+                {{-- ==================================================== --}}
+                {{-- BAGIAN 1: IDENTITAS UTAMA --}}
+                {{-- ==================================================== --}}
+                <div class="form-row">
+                    {{-- Input Nama Hewan --}}
+                    <div class="form-group col-md-6">
+                        <label>Nama Hewan <span class="text-danger">*</span></label>
+                        <input type="text" name="nama" class="form-control" value="{{ old('nama') }}" required placeholder="Contoh: Mochi">
+                    </div>
+
+                    {{-- Dropdown Pilih Pemilik --}}
+                    <div class="form-group col-md-6">
+                        <label>Pemilik <span class="text-danger">*</span></label>
+                        <select name="idpemilik" class="form-control select2" required>
+                            <option value="">-- Cari Pemilik --</option>
+                            @foreach($pemiliks as $p)
+                                <option value="{{ $p->idpemilik }}" {{ old('idpemilik') == $p->idpemilik ? 'selected' : '' }}>
+                                    {{-- Menampilkan: Nama User (Alamat Singkat) --}}
+                                    {{ $p->user->nama ?? $p->user->name ?? 'User Hapus' }} ({{ Str::limit($p->alamat, 20) }})
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+
+                {{-- ==================================================== --}}
+                {{-- BAGIAN 2: KLASIFIKASI HEWAN --}}
+                {{-- ==================================================== --}}
+                <div class="form-row">
+                    {{-- Dropdown Pilih Ras (PERBAIKAN UTAMA DISINI) --}}
+                    <div class="form-group col-md-6">
+                        <label>Jenis & Ras Hewan <span class="text-danger">*</span></label>
+                        <select name="idras_hewan" class="form-control select2" required>
+                            <option value="">-- Pilih Jenis/Ras --</option>
+                            @foreach($ras_hewans as $r)
+                                <option value="{{ $r->idras_hewan }}" {{ old('idras_hewan') == $r->idras_hewan ? 'selected' : '' }}>
+                                    {{-- FORMAT: [JENIS] - [NAMA RAS] --}}
+                                    {{-- Kita panggil relasi 'jenis' lalu ambil namanya. Kalau null, tampilkan 'Jenis?' --}}
+                                    {{ $r->jenis->nama_jenis_hewan ?? $r->jenis->nama ?? 'Jenis?' }} 
+                                    - 
+                                    {{-- Panggil 'nama_ras' sesuai database --}}
+                                    {{ $r->nama_ras }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    {{-- Dropdown Jenis Kelamin --}}
+                    <div class="form-group col-md-6">
+                        <label>Jenis Kelamin <span class="text-danger">*</span></label>
+                        <select name="jenis_kelamin" class="form-control" required>
+                            <option value="J" {{ old('jenis_kelamin') == 'J' ? 'selected' : '' }}>Jantan</option>
+                            <option value="B" {{ old('jenis_kelamin') == 'B' ? 'selected' : '' }}>Betina</option>
+                        </select>
+                    </div>
+                </div>
+
+                {{-- ==================================================== --}}
+                {{-- BAGIAN 3: CIRI FISIK --}}
+                {{-- ==================================================== --}}
+                <div class="form-row">
+                    <div class="form-group col-md-6">
+                        <label>Warna / Ciri Khusus</label>
+                        <input type="text" name="warna_tanda" class="form-control" value="{{ old('warna_tanda') }}" placeholder="Contoh: Putih Belang Hitam">
+                    </div>
+                    <div class="form-group col-md-6">
+                        <label>Tanggal Lahir (Perkiraan)</label>
+                        <input type="date" name="tanggal_lahir" class="form-control" value="{{ old('tanggal_lahir') }}">
+                        <small class="text-muted">Kosongkan jika tidak tahu.</small>
+                    </div>
+                </div>
+
+                <div class="mt-4">
+                    <a href="{{ route('admin.pet.index') }}" class="btn btn-secondary">Batal</a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Simpan Data Hewan
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>

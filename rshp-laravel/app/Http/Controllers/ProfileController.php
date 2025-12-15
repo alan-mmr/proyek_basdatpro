@@ -4,78 +4,138 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+// --- TAMBAHAN BARU: Import Hash untuk password ---
+use Illuminate\Support\Facades\Hash; 
+// -------------------------------------------------
 use App\Models\Dokter;
 use App\Models\Perawat;
+use App\Models\Resepsionis;
+use App\Models\Pemilik;
+use App\Models\User;
 
 class ProfileController extends Controller
 {
     /**
-     * Tampilkan Form Edit Profil
+     * Tampilkan Form Edit
      */
     public function edit()
     {
         $user = Auth::user();
         
-        // Ambil data dokter/perawat jika sudah ada sebelumnya
-        $dokterData = $user->dokterData;
-        $perawatData = $user->perawatData;
+        $dokterData      = $user->dokterData;
+        $perawatData     = $user->perawatData;
+        $resepsionisData = $user->resepsionisData;
+        $pemilikData     = $user->pemilik; 
 
-        return view('profile.edit', compact('user', 'dokterData', 'perawatData'));
+        // TRICK: Mapping 'no_wa' Database ke properti 'no_hp' Virtual
+        if($pemilikData) {
+            $pemilikData->no_hp = $pemilikData->no_wa; 
+        }
+
+        return view('profile.edit', compact('user', 'dokterData', 'perawatData', 'resepsionisData', 'pemilikData'));
     }
 
     /**
-     * Simpan Data Profil
+     * Simpan Data Profil (Action)
      */
     public function update(Request $request)
     {
         $user = Auth::user();
-        $role = $user->roles->first()->nama_role ?? ''; // Asumsi nama kolom di tabel role adalah 'nama_role'
+        // Ambil nama role (Pastikan user punya role)
+        $role = $user->roles->first()->nama_role ?? '';
 
-        // 1. LOGIKA UNTUK DOKTER
-        // Cek apakah role user mengandung kata 'dokter' (case insensitive)
+        // --- 1. DOKTER ---
         if (stripos($role, 'dokter') !== false) {
-            
             $request->validate([
-                'alamat' => 'required',
-                'no_hp' => 'required',
-                'bidang_dokter' => 'required',
-                'jenis_kelamin' => 'required',
+                'alamat'        => 'required|string|max:255',
+                'no_hp'         => 'required|numeric',
+                'bidang_dokter' => 'required|string',
+                'jenis_kelamin' => 'required|in:L,P',
             ]);
 
-            // Pakai updateOrCreate: Kalau ada diupdate, kalau belum ada dibuat baru
             Dokter::updateOrCreate(
-                ['id_user' => $user->iduser], // Kunci pencarian
+                ['id_user' => $user->iduser],
                 [
-                    'alamat' => $request->alamat,
-                    'no_hp' => $request->no_hp,
-                    'bidang_dokter' => $request->bidang_dokter,
-                    'jenis_kelamin' => $request->jenis_kelamin,
+                    'alamat'        => $request->alamat, 
+                    'no_hp'         => $request->no_hp, 
+                    'bidang_dokter' => $request->bidang_dokter, 
+                    'jenis_kelamin' => $request->jenis_kelamin
                 ]
             );
         }
 
-        // 2. LOGIKA UNTUK PERAWAT
-        // Cek apakah role user mengandung kata 'perawat'
+        // --- 2. PERAWAT ---
         elseif (stripos($role, 'perawat') !== false) {
-            
             $request->validate([
-                'alamat' => 'required',
-                'no_hp' => 'required',
-                'jenis_kelamin' => 'required',
-                'pendidikan' => 'required',
+                'alamat'        => 'required|string|max:255', 
+                'no_hp'         => 'required|numeric', 
+                'jenis_kelamin' => 'required|in:L,P', 
+                'pendidikan'    => 'required|string'
             ]);
 
             Perawat::updateOrCreate(
-                ['id_user' => $user->iduser], // Kunci pencarian
+                ['id_user' => $user->iduser],
                 [
-                    'alamat' => $request->alamat,
-                    'no_hp' => $request->no_hp,
-                    'jenis_kelamin' => $request->jenis_kelamin,
-                    'pendidikan' => $request->pendidikan,
+                    'alamat'        => $request->alamat, 
+                    'no_hp'         => $request->no_hp, 
+                    'jenis_kelamin' => $request->jenis_kelamin, 
+                    'pendidikan'    => $request->pendidikan
                 ]
             );
         }
 
-        return redirect()->back()->with('success', 'Data profil berhasil disimpan!');
+        // --- 3. RESEPSIONIS ---
+        elseif (stripos($role, 'resepsionis') !== false) {
+            $request->validate([
+                'alamat' => 'required|string|max:255', 
+                'no_hp'  => 'required|numeric'
+            ]);
+
+            Resepsionis::updateOrCreate(
+                ['id_user' => $user->iduser],
+                [
+                    'alamat' => $request->alamat, 
+                    'no_hp'  => $request->no_hp
+                ]
+            );
+        }
+
+        // --- 4. PEMILIK ---
+        elseif (stripos($role, 'pemilik') !== false) {
+            $request->validate([
+                'alamat' => 'required|string|max:255', 
+                'no_hp'  => 'required|numeric'
+            ]);
+            
+            Pemilik::updateOrCreate(
+                ['iduser' => $user->iduser],
+                [
+                    'alamat' => $request->alamat, 
+                    'no_wa'  => $request->no_hp 
+                ]
+            );
+        }
+
+        return redirect()->back()->with('success', 'Data profil berhasil diperbarui!');
+    }
+
+    /**
+     * TAMBAHAN BARU: Update Password
+     */
+    public function updatePassword(Request $request)
+    {
+        $request->validate([
+            'current_password' => 'required|current_password', // Cek pass lama
+            'password' => 'required|confirmed|min:8', // Pass baru min 8 & match confirm
+        ]);
+
+        $user = Auth::user();
+        
+        // Update Password
+        $user->update([
+            'password' => Hash::make($request->password)
+        ]);
+
+        return back()->with('success', 'Password berhasil diganti!');
     }
 }

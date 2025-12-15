@@ -4,32 +4,25 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
-use Illuminate\Support\Facades\Auth; // Panggil helper Auth
 
 class isResepsionis
 {
-    /**
-     * Handle an incoming request.
-     *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
-     */
     public function handle(Request $request, Closure $next): Response
     {
-        // 1. Cek apakah user sudah login
         if (!Auth::check()) {
-            return redirect()->route('login'); // Jika belum, lempar ke login
+            return redirect()->route('login');
         }
 
-        // 2. Ambil role dari session
-        $userRole = session('user_role');
+        $user = Auth::user();
+        $roleName = $user->roles->first()->nama_role ?? '';
 
-        // 3. Cek apakah rolenya 4 (Resepsionis)
-        if ($userRole == 4) {
-            return $next($request); // Jika ya, izinkan lanjut
+        // Cek Keyword 'Resepsionis'
+        if (stripos($roleName, 'Resepsionis') !== false) {
+            return $next($request);
         }
 
-        // 4. Jika bukan Resepsionis, tendang kembali
-        return back()->with('error', 'Akses ditolak. Anda bukan Resepsionis.');
+        abort(403, 'AKSES DITOLAK. Khusus Resepsionis.');
     }
 }

@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -11,89 +10,33 @@ class User extends Authenticatable
 {
     use HasFactory, Notifiable;
 
-    // --- KONFIGURASI TABEL KHUSUS ---
-    protected $table = 'user';      // Nama tabel di database (bukan 'users')
-    protected $primaryKey = 'iduser'; // Primary key custom (bukan 'id')
-    // --------------------------------
+    protected $table = 'user';
+    protected $primaryKey = 'iduser';
+    
+    // INI YANG PENTING BIAR GAK ERROR updated_at
+    public $timestamps = false; 
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
     protected $fillable = [
-        'nama',
-        'email',
-        'password',
+        'nama', 'email', 'password', 'spesialisasi',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var array<int, string>
-     */
     protected $hidden = [
-        'password',
-        'remember_token',
+        'password', 'remember_token',
     ];
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
-    protected function casts(): array
-    {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-        ];
-    }
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+    ];
 
-    // ================================================
-    // --- BAGIAN RELASI ---
-    // ================================================
-
-    /**
-     * Relasi: "User ini 'punya satu' Pemilik"
-     */
-    public function pemilik()
-    {
-        return $this->hasOne(Pemilik::class, 'iduser', 'iduser');
-    }
-
-    /**
-     * Relasi: "User ini punya banyak data RoleUser"
-     */
-    public function roleUser()
-    {
-        return $this->hasMany(RoleUser::class, 'iduser', 'iduser');
-    }
-
-    /**
-     * Relasi: "User ini 'punya banyak' Role" (via tabel pivot role_user)
-     */
+    // RELASI
     public function roles()
     {
-        return $this->belongsToMany(Role::class, 'role_user', 'iduser', 'idrole')
-                    ->wherePivot('status', 1);
+        return $this->belongsToMany(Role::class, 'role_user', 'iduser', 'idrole');
     }
 
-    /**
-     * Relasi: User ini adalah seorang Dokter (One to One)
-     * FK: id_user (di tabel dokters), LK: iduser (di tabel user)
-     */
-    public function dokterData()
-    {
-        return $this->hasOne(Dokter::class, 'id_user', 'iduser');
-    }
-
-    /**
-     * Relasi: User ini adalah seorang Perawat (One to One)
-     * FK: id_user (di tabel perawats), LK: iduser (di tabel user)
-     */
-    public function perawatData()
-    {
-        return $this->hasOne(Perawat::class, 'id_user', 'iduser');
-    }
+    // Relasi profil lain (opsional, biar lengkap)
+    public function dokterData() { return $this->hasOne(Dokter::class, 'id_user', 'iduser'); }
+    public function perawatData() { return $this->hasOne(Perawat::class, 'id_user', 'iduser'); }
+    public function resepsionisData() { return $this->hasOne(Resepsionis::class, 'id_user', 'iduser'); }
+    public function pemilik() { return $this->hasOne(Pemilik::class, 'iduser', 'iduser'); }
 }

@@ -5,94 +5,84 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\RasHewan;
-use App\Models\JenisHewan; // Kita butuh ini untuk dropdown
+use App\Models\JenisHewan; // Wajib import buat Dropdown
 use Exception;
 
 class RasHewanController extends Controller
 {
     public function index()
     {
+        // Eager Loading 'jenisHewan' biar query cepat
         $rasHewan = RasHewan::with('jenisHewan')->get();
         return view('admin.ras-hewan.index', compact('rasHewan'));
     }
 
-    /**
-     * Menampilkan form create.
-     */
     public function create()
     {
-        // Ambil data Jenis Hewan untuk dikirim ke dropdown
-        $jenisHewans = JenisHewan::all(); 
-        return view('admin.ras-hewan.create', compact('jenisHewans'));
+        // Ambil data Jenis Hewan buat isi Dropdown
+        $jenisHewan = JenisHewan::all();
+        return view('admin.ras-hewan.create', compact('jenisHewan'));
     }
 
-    /**
-     * Menyimpan data baru.
-     */
     public function store(Request $request)
     {
+        $request->validate([
+            'nama_ras' => 'required|string|max:100',
+            'idjenis_hewan' => 'required|exists:jenis_hewan,idjenis_hewan',
+        ], [
+            'idjenis_hewan.required' => 'Jenis hewan wajib dipilih.',
+        ]);
+
         try {
-            $validatedData = $this->validateRasHewan($request);
-            $this->createRasHewan($validatedData);
+            RasHewan::create([
+                'nama_ras' => $request->nama_ras,
+                'idjenis_hewan' => $request->idjenis_hewan,
+            ]);
 
             return redirect()->route('admin.ras-hewan.index')
-                             ->with('success', 'Ras hewan berhasil ditambahkan.');
+                ->with('success', 'Ras hewan berhasil ditambahkan.');
         } catch (Exception $e) {
-            return redirect()->back()
-                             ->with('error', $e->getMessage())
-                             ->withInput();
+            return back()->with('error', $e->getMessage())->withInput();
         }
     }
 
-    /**
-     * Helper: Validasi
-     */
-    protected function validateRasHewan(Request $request, $id = null)
+    public function edit($id)
     {
-        // Aturan validasi
-        $rules = [
-            'idjenis_hewan' => 'required|integer|exists:jenis_hewan,idjenis_hewan',
-            'nama_ras' => [
-                'required',
-                'string',
-                'max:100',
-                'min:2',
-                // Cek unique berdasarkan DUA kolom (nama_ras DAN idjenis_hewan)
-                'unique:ras_hewan,nama_ras,' . $id . ',idras_hewan,idjenis_hewan,' . $request->idjenis_hewan
-            ],
-        ];
-
-        // Pesan error kustom
-        $messages = [
-            'idjenis_hewan.required' => 'Jenis hewan wajib dipilih.',
-            'nama_ras.required' => 'Nama ras wajib diisi.',
-            'nama_ras.min' => 'Nama ras minimal 2 karakter.',
-            'nama_ras.unique' => 'Nama ras ini sudah ada untuk jenis hewan tersebut.',
-        ];
-
-        return $request->validate($rules, $messages);
+        $rasHewan = RasHewan::findOrFail($id);
+        $jenisHewan = JenisHewan::all(); // Buat Dropdown
+        return view('admin.ras-hewan.edit', compact('rasHewan', 'jenisHewan'));
     }
 
-    /**
-     * Helper: Simpan ke DB
-     */
-    protected function createRasHewan(array $data)
+    public function update(Request $request, $id)
+    {
+        $request->validate([
+            'nama_ras' => 'required|string|max:100',
+            'idjenis_hewan' => 'required|exists:jenis_hewan,idjenis_hewan',
+        ]);
+
+        try {
+            $rasHewan = RasHewan::findOrFail($id);
+            $rasHewan->update([
+                'nama_ras' => $request->nama_ras,
+                'idjenis_hewan' => $request->idjenis_hewan,
+            ]);
+
+            return redirect()->route('admin.ras-hewan.index')
+                ->with('success', 'Ras hewan berhasil diperbarui.');
+        } catch (Exception $e) {
+            return back()->with('error', $e->getMessage())->withInput();
+        }
+    }
+
+    public function destroy($id)
     {
         try {
-            return RasHewan::create([
-                'nama_ras' => $this->formatNama($data['nama_ras']),
-                'idjenis_hewan' => $data['idjenis_hewan'],
-            ]);
+            $rasHewan = RasHewan::findOrFail($id);
+            $rasHewan->delete();
+            return redirect()->route('admin.ras-hewan.index')
+                ->with('success', 'Ras hewan berhasil dihapus.');
         } catch (Exception $e) {
-            throw new Exception('Gagal menyimpan data ras hewan: ' . $e->getMessage());
+            return back()->with('error', 'Gagal menghapus data: ' . $e->getMessage());
         }
-    }
-
-    /**
-     * Helper: Format Nama (Title Case)
-     */
-    protected function formatNama($nama)
-    {
-        return trim(ucwords(strtolower($nama)));
     }
 }

@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\JenisHewan;
-use Exception; // Tambahkan ini untuk menangani error
+use Exception;
 
 class JenisHewanController extends Controller
 {
@@ -20,7 +20,6 @@ class JenisHewanController extends Controller
 
     /**
      * Menampilkan form untuk menambah data baru.
-     * [cite_start][Sesuai Modul 11, Halaman 3] [cite: 97-99]
      */
     public function create()
     {
@@ -29,75 +28,91 @@ class JenisHewanController extends Controller
 
     /**
      * Menyimpan data baru ke database.
-     * [cite_start][Sesuai Modul 11, Halaman 3] [cite: 100-109]
      */
     public function store(Request $request)
     {
+        $this->validateJenisHewan($request); // Panggil validasi
+
         try {
-            // 1. Validasi input
-            $validatedData = $this->validateJenisHewan($request);
+            JenisHewan::create([
+                'nama_jenis_hewan' => $this->formatNamaJenisHewan($request->nama_jenis_hewan)
+            ]);
 
-            // 2. Simpan data menggunakan helper
-            $this->createJenisHewan($validatedData);
-
-            // 3. Redirect kembali ke index dengan pesan sukses
             return redirect()->route('admin.jenis-hewan.index')
-                             ->with('success', 'Jenis hewan berhasil ditambahkan.');
-
+                ->with('success', 'Jenis hewan berhasil ditambahkan.');
         } catch (Exception $e) {
-            // Jika terjadi error, kembali ke form dengan pesan error
-            return redirect()->back()
-                             ->with('error', $e->getMessage())
-                             ->withInput();
+            return back()->with('error', $e->getMessage())->withInput();
         }
     }
 
     /**
-     * Bagian B: Validasi
-     * [cite_start][Sesuai Modul 11, Halaman 4] [cite: 122-140]
+     * 1. EDIT: Menampilkan Form Edit
+     * (Mengambil data lama berdasarkan ID, lalu kirim ke View)
      */
+    public function edit($id)
+    {
+        // Cari data berdasarkan Primary Key 'idjenis_hewan'
+        $jenisHewan = JenisHewan::where('idjenis_hewan', $id)->firstOrFail();
+        
+        return view('admin.jenis-hewan.edit', compact('jenisHewan'));
+    }
+
+    /**
+     * 2. UPDATE: Menyimpan Perubahan
+     */
+    public function update(Request $request, $id)
+    {
+        $this->validateJenisHewan($request, $id); // Validasi (abaikan ID sendiri biar gak error unique)
+
+        try {
+            $jenisHewan = JenisHewan::where('idjenis_hewan', $id)->firstOrFail();
+            
+            $jenisHewan->update([
+                'nama_jenis_hewan' => $this->formatNamaJenisHewan($request->nama_jenis_hewan)
+            ]);
+
+            return redirect()->route('admin.jenis-hewan.index')
+                ->with('success', 'Jenis hewan berhasil diperbarui.');
+        } catch (Exception $e) {
+            return back()->with('error', $e->getMessage())->withInput();
+        }
+    }
+
+    /**
+     * 3. DESTROY: Menghapus Data
+     */
+    public function destroy($id)
+    {
+        try {
+            $jenisHewan = JenisHewan::where('idjenis_hewan', $id)->firstOrFail();
+            $jenisHewan->delete();
+
+            return redirect()->route('admin.jenis-hewan.index')
+                ->with('success', 'Jenis hewan berhasil dihapus.');
+        } catch (Exception $e) {
+            return back()->with('error', 'Gagal menghapus data: ' . $e->getMessage());
+        }
+    }
+
+    // --- HELPER FUNCTIONS ---
+
     protected function validateJenisHewan(Request $request, $id = null)
     {
-        // Aturan 'unique' akan mengabaikan $id jika ada (untuk edit nanti)
-        $uniqueRule = $id ? 'unique:jenis_hewan,nama_jenis_hewan,' . $id . ',idjenis_hewan' 
-                         : 'unique:jenis_hewan,nama_jenis_hewan';
+        // PENTING: Validasi Unique harus mengecualikan ID data yang sedang diedit
+        // Format: unique:table,column,except_id,id_column_name
+        $uniqueRule = 'unique:jenis_hewan,nama_jenis_hewan';
+        if ($id) {
+            $uniqueRule .= ',' . $id . ',idjenis_hewan';
+        }
 
-        // Validasi data input
         return $request->validate([
-            'nama_jenis_hewan' => [
-                'required',
-                'string',
-                'max:255',
-                'min:3',
-                $uniqueRule
-            ],
+            'nama_jenis_hewan' => ['required', 'string', 'max:255', 'min:3', $uniqueRule],
         ], [
-            // Pesan error kustom
             'nama_jenis_hewan.required' => 'Nama jenis hewan wajib diisi.',
-            'nama_jenis_hewan.min' => 'Nama jenis hewan minimal 3 karakter.',
             'nama_jenis_hewan.unique' => 'Nama jenis hewan ini sudah ada.',
         ]);
     }
 
-    /**
-     * Bagian C: Helper untuk menyimpan data
-     * [cite_start][Sesuai Modul 11, Halaman 4] [cite: 146-155]
-     */
-    protected function createJenisHewan(array $data)
-    {
-        try {
-            return JenisHewan::create([
-                'nama_jenis_hewan' => $this->formatNamaJenisHewan($data['nama_jenis_hewan']),
-            ]);
-        } catch (Exception $e) {
-            throw new Exception('Gagal menyimpan data jenis hewan: ' . $e->getMessage());
-        }
-    }
-
-    /**
-     * Bagian C: Helper untuk format nama (Title Case)
-     * [cite_start][Sesuai Modul 11, Halaman 4] [cite: 157-160]
-     */
     protected function formatNamaJenisHewan($nama)
     {
         return trim(ucwords(strtolower($nama)));

@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Auth;
 
 // ==========================================================
 // --- IMPORT SEMUA CONTROLLER ---
@@ -22,6 +23,7 @@ use App\Http\Controllers\Admin\PetController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\PendaftaranController;
+
 
 // (Role Controllers)
 use App\Http\Controllers\Resepsionis\DashboardResepsionisController;
@@ -54,7 +56,13 @@ Route::middleware(['auth'])->group(function () {
     // 2. FITUR PROFILE (MODUL 13)
     // Ditaruh disini supaya Dokter, Perawat, Admin semua bisa akses
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');     // Tampilkan Form
-    Route::post('/profile', [ProfileController::class, 'update'])->name('profile.update'); // Simpan Data
+    
+    // --- TAMBAHKAN BARIS INI (Route Password) ---
+    Route::patch('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password');
+    // --------------------------------------------
+    
+    // PERBAIKAN DISINI: Pakai 'match' biar bisa terima POST dan PATCH sekaligus
+    Route::match(['put', 'patch', 'post'], '/profile', [ProfileController::class, 'update'])->name('profile.update'); 
 });
 
 
@@ -67,54 +75,20 @@ Route::middleware(['isAdministrator'])->prefix('admin')->name('admin.')->group(f
     
     Route::get('/dashboard', [DashboardAdminController::class, 'index'])->name('dashboard');
 
-    // --- DATA MASTER ---
+    // --- DATA MASTER (MASS UPGRADE KE RESOURCE) ---
+    // Semua route di bawah ini otomatis punya fitur: Index, Create, Store, Show, Edit, Update, Destroy
     
-    // Jenis Hewan
-    Route::get('/jenis-hewan', [JenisHewanController::class, 'index'])->name('jenis-hewan.index');
-    Route::get('/jenis-hewan/create', [JenisHewanController::class, 'create'])->name('jenis-hewan.create'); 
-    Route::post('/jenis-hewan/store', [JenisHewanController::class, 'store'])->name('jenis-hewan.store');
+    Route::resource('jenis-hewan', JenisHewanController::class);
+    Route::resource('pemilik', PemilikController::class);
+    Route::resource('ras-hewan', RasHewanController::class);
+    Route::resource('kategori', KategoriController::class);
+    Route::resource('kategori-klinis', KategoriKlinisController::class);
+    Route::resource('kode-tindakan', KodeTindakanTerapiController::class);
+    Route::resource('pet', PetController::class);
+    Route::resource('role', RoleController::class);
+    Route::resource('user', UserController::class);
     
-    // Pemilik
-    Route::get('/pemilik', [PemilikController::class, 'index'])->name('pemilik.index');
-    Route::get('/pemilik/create', [PemilikController::class, 'create'])->name('pemilik.create'); 
-    Route::post('/pemilik/store', [PemilikController::class, 'store'])->name('pemilik.store');  
-    
-    // Ras Hewan
-    Route::get('/ras-hewan', [RasHewanController::class, 'index'])->name('ras-hewan.index');
-    Route::get('/ras-hewan/create', [RasHewanController::class, 'create'])->name('ras-hewan.create');
-    Route::post('/ras-hewan/store', [RasHewanController::class, 'store'])->name('ras-hewan.store');  
-    
-    // Kategori
-    Route::get('/kategori', [KategoriController::class, 'index'])->name('kategori.index');
-    Route::get('/kategori/create', [KategoriController::class, 'create'])->name('kategori.create'); 
-    Route::post('/kategori/store', [KategoriController::class, 'store'])->name('kategori.store');
-    
-    // Kategori Klinis
-    Route::get('/kategori-klinis', [KategoriKlinisController::class, 'index'])->name('kategori-klinis.index');
-    Route::get('/kategori-klinis/create', [KategoriKlinisController::class, 'create'])->name('kategori-klinis.create'); 
-    Route::post('/kategori-klinis/store', [KategoriKlinisController::class, 'store'])->name('kategori-klinis.store');
-    
-    // Kode Tindakan
-    Route::get('/kode-tindakan', [KodeTindakanTerapiController::class, 'index'])->name('kode-tindakan.index');
-    Route::get('/kode-tindakan/create', [KodeTindakanTerapiController::class, 'create'])->name('kode-tindakan.create'); 
-    Route::post('/kode-tindakan/store', [KodeTindakanTerapiController::class, 'store'])->name('kode-tindakan.store');
-    
-    // Pet (Hewan Peliharaan)
-    Route::get('/pet', [PetController::class, 'index'])->name('pet.index');
-    Route::get('/pet/create', [PetController::class, 'create'])->name('pet.create'); 
-    Route::post('/pet/store', [PetController::class, 'store'])->name('pet.store');
-    
-    // Manajemen Role
-    Route::get('/role', [RoleController::class, 'index'])->name('role.index');
-    Route::get('/role/create', [RoleController::class, 'create'])->name('role.create'); 
-    Route::post('/role/store', [RoleController::class, 'store'])->name('role.store');
-    
-    // Manajemen User
-    Route::get('/user', [UserController::class, 'index'])->name('user.index');
-    Route::get('/user/create', [UserController::class, 'create'])->name('user.create'); 
-    Route::post('/user/store', [UserController::class, 'store'])->name('user.store');
-    
-    // Pendaftaran
+    // Pendaftaran (Masih manual dulu karena mungkin logic-nya custom/transaksi)
     Route::get('/pendaftaran',[PendaftaranController::class, 'index'])->name('pendaftaran.index');
 
 }); 

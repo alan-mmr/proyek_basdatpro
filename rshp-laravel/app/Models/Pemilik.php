@@ -1,5 +1,4 @@
 <?php
-// File: app/Models/Pemilik.php
 
 namespace App\Models;
 
@@ -10,20 +9,49 @@ class Pemilik extends Model
 {
     use HasFactory;
 
+    /**
+     * Menentukan nama tabel yang terkait dengan model ini.
+     */
     protected $table = 'pemilik';
 
+    /**
+     * Menentukan primary key tabel.
+     * Penting: Default Laravel adalah 'id', wajib diubah ke 'idpemilik' agar update/delete berfungsi.
+     */
     protected $primaryKey = 'idpemilik';
 
-    // Kolom yang boleh diisi
-    protected $fillable = ['no_wa', 'alamat', 'iduser'];
+    /**
+     * Menandakan bahwa primary key adalah auto-incrementing integer.
+     */
+    public $incrementing = true;
 
-    // Relasi: "Pemilik ini 'milik' satu User"
+    /**
+     * Atribut yang dapat diisi secara massal (Mass Assignment).
+     */
+    protected $fillable = [
+        'iduser', // Wajib ada untuk relasi ke tabel User
+        'alamat', 
+        'no_wa'
+    ];
+
+    /**
+     * =========================================================
+     * SOLUSI ERROR "Unknown column 'updated_at'"
+     * =========================================================
+     * Menonaktifkan timestamp karena tabel 'pemilik' tidak punya 
+     * kolom created_at dan updated_at.
+     */
+    public $timestamps = false; 
+
+    /**
+     * =========================================================
+     * RELASI KE TABEL USER
+     * =========================================================
+     * Mendefinisikan bahwa setiap data Pemilik "Milik" satu User (Akun).
+     */
     public function user()
     {
-        // 'iduser' adalah foreign key di tabel 'pemilik'
-        // 'iduser' adalah primary key di tabel 'user'
+        // parameter: (Model Tujuan, Foreign Key di sini, Primary Key di sana)
         return $this->belongsTo(User::class, 'iduser', 'iduser');
     }
-
-    public $timestamps = false;
 }
